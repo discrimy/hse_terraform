@@ -13,7 +13,6 @@ provider "yandex" {
 
 variable "folder_id" {
   type = string
-  default = "b1g7pqtm2ee4dtnkk56q"
 }
 variable "zone" {
   type = string
