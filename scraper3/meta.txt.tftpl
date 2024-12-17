@@ -1,0 +1,25 @@
+#cloud-config
+users:
+  - name: scraper
+    groups: sudo
+    shell: /bin/bash
+    sudo: 'ALL=(ALL) NOPASSWD:ALL'
+    ssh_authorized_keys:
+      - ${scraper_ssh_public_key}
+# write_files:
+#   - path: "/usr/local/etc/startup.sh"
+#     permissions: "755"
+#     content: |
+#       #!/bin/bash
+
+#       sudo apt update
+#       sudo apt install python3.10 python3.10-venv git wget postgresql-client -y
+      
+#       git clone https://github.com/discrimy/bookspider.git
+#       cd bookspider
+#       python3.10 -m venv .venv
+#       .venv/bin/python -m pip install scrapy psycopg
+#       CONNECTION_STRING=${db_connection_string} .venv/bin/scrapy crawl bookspider
+#     defer: true
+# runcmd:
+#   - [ "/usr/local/etc/startup.sh" ]
