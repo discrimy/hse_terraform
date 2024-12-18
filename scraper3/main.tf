@@ -18,6 +18,10 @@ variable "zone" {
   type = string
   default = "ru-central1-a"
 }
+variable "scapers-count" {
+  type = number
+  default = 3
+}
 
 resource "yandex_vpc_network" "network1" {
   name = "network1"
@@ -33,13 +37,17 @@ data "yandex_compute_image" "ubuntu-2204-lts" {
     family = "ubuntu-2204-lts"
 }
 resource "yandex_compute_disk" "boot_disk" {
-  name = "boot-disk"
+  count = var.scapers-count
+
+  name = "boot-disk-${count.index}"
   zone = var.zone
   image_id = data.yandex_compute_image.ubuntu-2204-lts.image_id
   size = 10
 }
 resource "yandex_compute_instance" "vm" {
-  name = "scraper-vm"
+  count = var.scapers-count
+
+  name = "scraper-vm-${count.index}"
   zone = var.zone
 
   resources {
@@ -47,7 +55,7 @@ resource "yandex_compute_instance" "vm" {
     memory = 2
   }
   boot_disk {
-    disk_id = yandex_compute_disk.boot_disk.id
+    disk_id = yandex_compute_disk.boot_disk[count.index].id
   }
   network_interface {
     subnet_id = yandex_vpc_subnet.network1-subnet1.id
@@ -62,6 +70,7 @@ data "template_file" "vm-meta" {
   vars = {
     scraper_ssh_public_key = "${file("~/.ssh/id_rsa.pub")}"
     db_connection_string = "postgres://${yandex_mdb_postgresql_user.scraper.name}:${yandex_mdb_postgresql_user.scraper.password}@${yandex_mdb_postgresql_cluster.postgres-cluster.host[0].fqdn}:6432/${yandex_mdb_postgresql_database.postgres-db.name}"
+    redis_url = "redis://:${yandex_mdb_redis_cluster.redis-cluster.config[0].password}@${yandex_mdb_redis_cluster.redis-cluster.host[0].fqdn}/0"
   }
 }
 
@@ -163,8 +172,8 @@ resource "random_string" "bucket_name" {
   upper = false
 }
 
-output "vm-ip" {
-  value = yandex_compute_instance.vm.network_interface.0.nat_ip_address
+output "vm-ips" {
+  value = yandex_compute_instance.vm[*].network_interface.0.nat_ip_address
 }
 output "db-connection-string" {
   value = "postgres://${yandex_mdb_postgresql_user.scraper.name}:${yandex_mdb_postgresql_user.scraper.password}@${yandex_mdb_postgresql_cluster.postgres-cluster.host[0].fqdn}:6432/${yandex_mdb_postgresql_database.postgres-db.name}"
